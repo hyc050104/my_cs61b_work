@@ -7,7 +7,7 @@ import java.util.Observable;
 /**
  * The state of a game of 2048.
  *
- * @author TODO: YOUR NAME HERE
+ * @author Han
  */
 public class Model extends Observable {
     /**
@@ -139,16 +139,62 @@ public class Model extends Observable {
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
-
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
-
+        this.board.setViewingPerspective(side);
+        for (int col = 0; col < this.board.size(); col++) {
+            if (colTilesUp(col)) {
+                changed = true;
+            }
+        }
+        this.board.setViewingPerspective(Side.NORTH);
         checkGameOver();
         if (changed) {
             setChanged();
         }
         return changed;
+    }
+
+    public boolean colTilesUp(int col) {
+        boolean changed = false;
+        int upperBound = this.board.size() - 1;
+        int place;
+        for (int row = this.board.size() - 1; row >= 0; row--) {
+            if (this.board.tile(col, row) == null) {
+                continue;
+            }
+            place = singleTileUp(upperBound, col, row);
+            if (place == row) {
+                upperBound = place;
+            } else {
+                changed = true;
+                if (this.board.tile(col, place) == null) {
+                    this.board.move(col, place, this.board.tile(col, row));
+                    upperBound = place;
+                } else {
+                    this.score = this.score + this.board.tile(col, row).value() * 2;
+                    this.board.move(col, place, this.board.tile(col, row));
+                    upperBound = place - 1;
+                }
+            }
+        }
+        return changed;
+    }
+
+    public int singleTileUp(int upperBound, int col, int row) {
+        int place = row;
+        while (true) {
+            if (place + 1 > upperBound) {
+                break;
+            }
+            if (this.board.tile(col, place + 1) == null) {
+                place = place + 1;
+            } else if (this.board.tile(col, place + 1).value() == this.board.tile(col, row).value()) {
+                place = place + 1;
+                break;
+            } else {
+                break;
+            }
+        }
+        return place;
     }
 
     /**
@@ -204,11 +250,11 @@ public class Model extends Observable {
      * 2. There are two adjacent tiles with the same value.
      */
     public static boolean atLeastOneMoveExists(Board b) {
+        if (emptySpaceExists(b)) {
+            return true;
+        }
         for (int col = 0; col < b.size(); col++) {
             for (int row = 0; row < b.size(); row++) {
-                if (b.tile(col, row) == null) {
-                    return true;
-                }
                 if (col != b.size() - 1) {
                     if (b.tile(col, row).value() == b.tile(col + 1, row).value()) {
                         return true;
